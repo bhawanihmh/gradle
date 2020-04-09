@@ -37,8 +37,6 @@ sourceSets {
   }
 }*/
 /*
-n’t have to. There are several options for customization, as you’ll see next.
-
 Customizing file and directory locations
 Imagine you have a legacy project that uses an src directory for the production 
 code and test for the test code. The conventional directory structure won’t work, 
