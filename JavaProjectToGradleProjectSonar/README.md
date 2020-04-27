@@ -10,12 +10,12 @@
 rootProject.name = 'javaProjectToGradleProject'
 
 ## Some commands ##
-gradle wrapper
-gradle build
-gradlew test
-gradlew clean test --info
-gradlew clean build --stacktrace
-gradlew clean sonarqube --stacktrace
+* gradle wrapper
+* gradle build
+* gradlew test
+* gradlew clean test --info
+* gradlew clean build --stacktrace
+* gradlew clean sonarqube --stacktrace
 
 ## Content of build.gradle file with some details ##
 ```
