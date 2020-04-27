@@ -9,6 +9,14 @@
 ## Content of setting.gradle file ##
 rootProject.name = 'javaProjectToGradleProject'
 
+## Some commands ##
+gradle wrapper
+gradle build
+gradlew test
+gradlew clean test --info
+gradlew clean build --stacktrace
+gradlew clean sonarqube --stacktrace
+
 ## Content of build.gradle file with some details ##
 ```
 /*
@@ -26,7 +34,96 @@ plugins {
 
     // Apply the application plugin to add support for building a CLI application.
     id 'application'
+    
+    // Apply the java plugin to add support for jacoco 
+    id 'jacoco'
+    
+    //Gradle plugin to help analyzing projects with SonarQube
+    id "org.sonarqube" version "2.8"
 }
+
+//https://docs.sonarqube.org/latest/analysis/scan/sonarscanner-for-gradle/
+sonarqube {
+    properties {
+    	property "sonar.sources", "src"
+    	property "sonar.tests", "test"
+    	property "sonar.sourceEncoding", "UTF-8"
+    	property 'sonar.projectName', project.name
+        property 'sonar.projectKey', "com.adcb.xyz:sonar-jacoco"
+        property 'sonar.host.url', 'http://localhost:9000'
+        
+        //bb6615b17177fa6122ddf149c99d9d1802b25f93
+       	// property "sonar.exclusions", "/Generated.java"
+       	
+    }
+}
+
+//apply plugin: "org.sonarqube"
+// JaCoCo now automatically creates a file build/jacoco/test.exec which contains 
+// the coverage statistics in binary form.
+// https://gradle.github.io/gradle-script-kotlin-docs/userguide/jacoco_plugin.html
+jacoco {
+    //toolVersion = "0.8.5"
+    reportsDir = file("$buildDir/jacoco/adcb")
+    applyTo run
+    
+}
+/*
+The destination for this file can be configured in the jacocoTestReports closure in build.gradle
+Creating an HTML Coverage Report  : ./gradlew build jacocoTestReport
+Note that the jacocoTestReport task simply does nothing when the test.exec file does not exist. 
+So, we should always run the build or test task first.
+
+run automatically with every build by adding it as a finalizer for the build task in build.gradle:
+test.finalizedBy jacocoTestReport
+*/
+jacocoTestReport {
+    File jacocoLibDir = file("lib")
+	jacocoClasspath = files { jacocoLibDir.listFiles() }
+}
+/*
+Enforcing Code Coverage
+The JaCoCo Gradle Plugin allows us to define rules to enforce code coverage. If any of the defined rules fails, the verification will fail.
+We can execute the verification by calling: ./gradlew build jacocoTestCoverageVerification
+
+Note that by default, this task is not called by ./gradlew check. To include it, we can add the following to our build.gradle:
+./check.dependsOn jacocoTestCoverageVerification
+
+Global Coverage Rule
+The following configuration will enforce that 100% of the lines are executed during tests:
+jacocoTestCoverageVerification {
+  violationRules {
+    rule {
+      limit {
+        counter = 'LINE'
+        value = 'COVEREDRATIO'
+        minimum = 1.0
+      }
+    }
+  }
+}
+Instead of enforcing line coverage, we can also count other entities and hold them against our coverage threshold:
+
+LINE: counts the number of lines
+BRANCH: counts the number of execution branches
+CLASS: counts the number of classes
+INSTRUCTION: counts the number of code instructions
+METHOD: counts the number of methods
+
+More info : https://reflectoring.io/jacoco/
+https://github.com/thombergs/code-examples/tree/master/tools/jacoco
+https://medium.com/codeops/code-coverage-with-gradle-and-jacoco-8b2e7d580d2a
+*/
+
+
+
+//apply plugin: 'jacoco'
+
+/*
+jacoco {
+    toolVersion = '0.8.5'
+    applyTo junitPlatformTest
+}*/
 /*
 sourceSets {
   main {
@@ -37,6 +134,8 @@ sourceSets {
   }
 }*/
 /*
+n’t have to. There are several options for customization, as you’ll see next.
+
 Customizing file and directory locations
 Imagine you have a legacy project that uses an src directory for the production 
 code and test for the test code. The conventional directory structure won’t work, 
@@ -94,22 +193,27 @@ repositories {
 	
 	// If you want to use a (flat) filesystem directory as a repository
 	flatDir {
-		dirs 'libs'
+		dirs 'lib'
 		//dirs 'lib1', 'lib2'
 	}
     // Use jcenter for resolving dependencies.
     // You can declare any Maven/Ivy/file repository here.
-    jcenter()
+    //jcenter()
 }
 
 dependencies {
-	compile fileTree(dir: 'libs', include: '*.jar')
-	//runtime fileTree(dir: 'libs', include: '*.jar')
+	implementation fileTree(dir: 'lib', include: '*.jar')
+	//classpath fileTree(dir: 'lib', include: '*.jar')
+	//runtime fileTree(dir: 'lib', include: '*.jar')
+	testImplementation fileTree(dir: 'lib', include: '*.jar')
+	testRuntimeOnly fileTree(dir: 'lib', include: '*.jar')
     // This dependency is used by the application.
-    implementation 'com.google.guava:guava:28.2-jre'
+    //implementation 'com.google.guava:guava:28.2-jre'
 
     // Use JUnit test framework
-    testImplementation 'junit:junit:4.12'
+    //testImplementation 'junit:junit:4.12'
+    //testImplementation 'org.junit.jupiter:junit-jupiter-api:5.3.1'
+    //testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.3.1'
 }
 
 
@@ -130,10 +234,10 @@ version = '1.0.0'
 task fatJar(type: Jar) {
 	manifest {
         attributes 'Implementation-Title': 'Gradle Jar File Example for ADCB',  
-        	'Implementation-Version': version,
+        	//'Implementation-Version': version,
         	'Main-Class': 'com.adcb.xyz.App'
     }
-   	baseName = project.name// + '-all'
+   	archiveBaseName = project.name// + '-' + version
    	
    	//from fileTree('src') {
       //  include '**/*/.class'
@@ -141,7 +245,7 @@ task fatJar(type: Jar) {
     //from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
     
     into('lib') {
-        from 'libs'
+        from 'lib'
     }
     with jar // The important part is with jar. Without it, the classes of this project are not included.
 }
@@ -155,11 +259,86 @@ task fatJar(type: Jar) {
 }
 
 */
+/*
 
+test {
+    useJUnitPlatform {
+        includeTags 'fast'
+        excludeTags 'slow'
+    }
+}
+
+*/
+
+//to check all jars of compile time
+task listJarsCompile  {
+    //configurations.compile.each { File file -> println file.name }
+}
+//to check all jars of runtime time
+task listJarsRuntime  {
+    //configurations.runtime.each { File file -> println file.name }
+}
+/*
+jacocoTestReport {
+    afterEvaluate {
+        classDirectories = files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: ['**Main*'])
+        })
+    }
+}
+
+junitPlatformTest {
+    jacoco {
+        destinationFile = file("${buildDir}/jacoco/test.exec")
+    }
+}
+*/
+
+test {
+    useJUnitPlatform()
+    jacoco {
+    	//append = false
+        //destinationFile = file("*/build/jacoco/jacocoTest.exec")
+        //classDumpDir = file("*/build/jacoco/classpathdumps")
+        destinationFile = file("$buildDir/jacoco/jacocoTest.exec")
+        classDumpDir = file("$buildDir/jacoco/classpathdumps")
+    }
+}
+/*
+task applicationCodeCoverageReport(type:JacocoReport) {
+    //executionData fileTree(project.rootDir.absolutePath).include("$buildDir/jacoco/*.exec")
+    //executionData fileTree(".").include("$buildDir/jacoco/*.exec")
+    //executionData fileTree(${buildDir}).include("/jacoco/*.exec")
+    executionData run
+    //sourceSets sourceSets.main
+    reports {
+        xml.enabled true
+       // xml.destination "$buildDir/reports/jacoco/report.xml"
+        html.enabled true
+        csv.enabled false
+    }
+}
+*/
+/*applicationCodeCoverageReport.dependsOn {
+    subprojects*.test
+}*/
+/*
+jacocoTestCoverageVerification {
+	violationRules {
+		rule {
+			limit {
+				counter = 'LINE'
+				value = 'COVEREDRATIO'
+				minimum = 0.02
+			}
+		}
+	}
+}
+*/
+test.finalizedBy jacocoTestReport
+ //,sonarqube
+//check.dependsOn jacocoTestCoverageVerification
+//build.finalizedBy sonarqube
 ```
 
-## Some commands ##
-gradle wrapper
-gradle build
-gradlew test
-gradlew clean test --info
+
