@@ -10,6 +10,7 @@
 rootProject.name = 'javaProjectToGradleProject'
 
 ## Some commands ##
+* gradle init
 * gradle wrapper
 * gradle build
 * gradlew test
